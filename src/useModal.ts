@@ -1,11 +1,13 @@
 import { createVNode, nextTick, ref, render, computed, shallowRef, cloneVNode, onScopeDispose } from 'vue';
-import type { AppContext, Component, ComputedRef, Ref, VNode } from 'vue';
+import type { AppContext, Component, ComputedRef, Ref, ShallowRef, VNode } from 'vue';
 import type { ComponentExposed, ComponentProps } from './Component';
 
+// Function to deep clone an object
 function cloneDeep<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
+// Function to get the overlay element
 export const getOverlay = () => {
   const popper = document.createElement('div');
   return popper;
@@ -13,14 +15,17 @@ export const getOverlay = () => {
 
 let DialogContext: AppContext;
 
+// Function to set the dialog context
 export function setDialogContext(appContext: AppContext) {
   DialogContext = appContext;
 }
 
+// Default configuration for the modal
 const defaultConfig = {
   visible: false,
 };
 
+// Interface for the props of the useModal function
 type IProps<T, Lazy> = {
   lazy: Lazy;
   component: T;
@@ -39,8 +44,10 @@ type IProps<T, Lazy> = {
   autoDestroy?: boolean;
 };
 
+// Type for the computed component exposed
 type ComputedComponentExposed<Component> = ComputedRef<ComponentExposed<Component>>;
 
+// Return value type of the useModal function
 type ReturnValue<Comp extends Component, Lazy extends boolean> = {
   open: () => void;
   close: () => void;
@@ -53,7 +60,7 @@ type ReturnValue<Comp extends Component, Lazy extends boolean> = {
   };
 
   updateConfig: (config: Record<string, any> & ComponentProps<Comp>) => void;
-  vm: VNode | null;
+  vm: ShallowRef<VNode | null>;
 
   visible: Ref<boolean>;
 } & (Lazy extends true
@@ -64,6 +71,12 @@ type ReturnValue<Comp extends Component, Lazy extends boolean> = {
       expose?: ComputedComponentExposed<Comp>;
     });
 
+/**
+ * Custom hook for managing a modal component.
+ * @param config - Configuration object for the modal.
+ * @param appContext - Optional application context.
+ * @returns An object containing functions and properties for managing the modal.
+ */
 export function useModal<Comp extends Component>(
   config: IProps<Comp, true>,
   context?: AppContext,
@@ -80,6 +93,7 @@ export function useModal<Comp extends Component>(
   let container: HTMLElement | null = null;
   // eslint-disable-next-line no-param-reassign
   appContext = appContext || DialogContext;
+
   const {
     component,
     props = null,
@@ -98,6 +112,9 @@ export function useModal<Comp extends Component>(
     visible.value = true;
   }
 
+  /**
+   * Opens the modal.
+   */
   const open = () => {
     if (!vm.value) init();
     if (vm.value?.component) {
@@ -109,6 +126,9 @@ export function useModal<Comp extends Component>(
     config?.onOpen?.();
   };
 
+  /**
+   * Confirms the modal.
+   */
   const confirm = () => {
     if (vm.value?.component) {
       updateConfig({
@@ -119,6 +139,9 @@ export function useModal<Comp extends Component>(
     config?.onConfirm?.();
   };
 
+  /**
+   * Removes the modal.
+   */
   const remove = async () => {
     await nextTick();
     visible.value = false;
@@ -133,6 +156,9 @@ export function useModal<Comp extends Component>(
     config?.onRemove?.();
   };
 
+  /**
+   * Closes the modal.
+   */
   const close = () => {
     if (vm.value?.component) {
       updateConfig({
@@ -143,6 +169,10 @@ export function useModal<Comp extends Component>(
     config?.onClose?.();
   };
 
+  /**
+   * Updates the configuration of the modal.
+   * @param config - The new configuration.
+   */
   const updateConfig = (config: Record<string, any> = {}) => {
     if (vm.value) {
       nextTick().then(() => {
@@ -152,6 +182,9 @@ export function useModal<Comp extends Component>(
     }
   };
 
+  /**
+   * Initializes the modal.
+   */
   function init() {
     vm.value = createVNode(component, {
       visible: visible,
