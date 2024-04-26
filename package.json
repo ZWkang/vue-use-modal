@@ -12,9 +12,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zwkang/pkg-name.git"
+    "url": "git+https://github.com/zwkang/vue-use-modal.git"
   },
-  "bugs": "https://github.com/zwkang/pkg-name/issues",
+  "bugs": "https://github.com/zwkang/vue-use-modal/issues",
   "keywords": [],
   "sideEffects": false,
   "exports": {
