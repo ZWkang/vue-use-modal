@@ -1,6 +1,6 @@
 {
   "name": "@zwkang/vue-use-modal",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "packageManager": "pnpm@7.9.0",
   "description": "a simple way for function-call create modal",
   "publishConfig": {
