@@ -34,6 +34,10 @@ const { open, close } = useDialog({
 });
 ```
 
+## example usage
+
+[example](./examples/my-vue-app/)
+
 ## LICENSE
 
 [MIT](./LICENSE) License © 2022 [zwkang](https://github.com/zwkang)
