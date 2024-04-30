@@ -39,7 +39,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup --watch",
+    "dev": "vite",
     "lint": "eslint --cache .",
     "test": "vitest run",
     "build": "vite build",

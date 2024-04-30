@@ -1,17 +1,37 @@
-import { createVNode, nextTick, ref, render, computed, shallowRef, cloneVNode, onScopeDispose } from 'vue';
+import {
+  createVNode,
+  nextTick,
+  ref,
+  render,
+  computed,
+  shallowRef,
+  cloneVNode,
+  onScopeDispose,
+  unref,
+  isRef,
+} from 'vue';
 import type { AppContext, Component, ComputedRef, Ref, ShallowRef, VNode } from 'vue';
 import type { ComponentExposed, ComponentProps } from './Component';
-
-// Function to deep clone an object
-function cloneDeep<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
-}
 
 // Function to get the overlay element
 export const getOverlay = () => {
   const popper = document.createElement('div');
   return popper;
 };
+
+function handleProps(obj: Record<string, Ref<any> | any>) {
+  const keys = Object.keys(obj);
+  const refKeys = keys.filter((key) => isRef(obj[key]));
+  const values: any = {};
+  refKeys.forEach((key) => {
+    values[key] = unref(obj[key]);
+  });
+
+  return {
+    ...obj,
+    ...values,
+  };
+}
 
 let DialogContext: AppContext;
 
@@ -27,12 +47,13 @@ const defaultConfig = {
 
 // Interface for the props of the useModal function
 type IProps<T, Lazy> = {
-  lazy: Lazy;
+  lazy?: Lazy;
   component: T;
-  immediate?: boolean;
+
   getContainer?: () => HTMLElement;
   props?: Omit<ComponentProps<T>, 'visible'>;
   visible?: boolean;
+  __exp_autoRef?: boolean;
 
   onConfirm?: () => void;
   onRemove?: () => void;
@@ -41,11 +62,17 @@ type IProps<T, Lazy> = {
 
   slots?: any;
 
+  immediate?: boolean;
   autoDestroy?: boolean;
 };
 
 // Type for the computed component exposed
 type ComputedComponentExposed<Component> = ComputedRef<ComponentExposed<Component>>;
+type MaybeRef<T> = T | Ref<T>;
+
+type MarkMaybeRef<T extends Record<string, any>> = {
+  [key in keyof T]: MaybeRef<T[key]>;
+};
 
 // Return value type of the useModal function
 type ReturnValue<Comp extends Component, Lazy extends boolean> = {
@@ -59,7 +86,7 @@ type ReturnValue<Comp extends Component, Lazy extends boolean> = {
     modalContainer: HTMLElement | null;
   };
 
-  updateConfig: (config: Record<string, any> & ComponentProps<Comp>) => void;
+  updateConfig: (arg: { props: MarkMaybeRef<Record<string, any> & ComponentProps<Comp>>; reset?: boolean }) => void;
   vm: ShallowRef<VNode | null>;
 
   visible: Ref<boolean>;
@@ -99,9 +126,10 @@ export function useModal<Comp extends Component>(
     props = null,
     immediate = false,
     getContainer,
-    lazy = false,
+    lazy = true,
     visible: _visible = defaultConfig.visible,
     autoDestroy = false,
+    __exp_autoRef = true,
   } = config;
 
   let vm: any = shallowRef<any>(null);
@@ -118,9 +146,17 @@ export function useModal<Comp extends Component>(
   const open = () => {
     if (!vm.value) init();
     if (vm.value?.component) {
-      updateConfig({
-        visible: true,
-      });
+      if (__exp_autoRef) {
+        updateConfig({
+          reset: true,
+          props: props === null ? { visible: true } : { ...handleProps(props), visible: true },
+        });
+      } else {
+        updateConfig({
+          reset: true,
+          props: props === null ? { visible: true } : { ...props, visible: true },
+        });
+      }
     }
 
     config?.onOpen?.();
@@ -131,9 +167,7 @@ export function useModal<Comp extends Component>(
    */
   const confirm = () => {
     if (vm.value?.component) {
-      updateConfig({
-        visible: false,
-      });
+      updateConfigNoSet(false);
     }
 
     config?.onConfirm?.();
@@ -161,9 +195,7 @@ export function useModal<Comp extends Component>(
    */
   const close = () => {
     if (vm.value?.component) {
-      updateConfig({
-        visible: false,
-      });
+      updateConfigNoSet(false);
     }
 
     config?.onClose?.();
@@ -173,13 +205,23 @@ export function useModal<Comp extends Component>(
    * Updates the configuration of the modal.
    * @param config - The new configuration.
    */
-  const updateConfig = (config: Record<string, any> = {}) => {
+  const updateConfig = ({ props, reset = false }: { props: Record<string, any>; reset?: boolean }) => {
     if (vm.value) {
       nextTick().then(() => {
         visible.value = config.visible ?? visible.value;
-        render(cloneVNode(vm.value, { ...cloneDeep(vm.value?.component.props), ...config }), modalContainer!);
+        if (reset) {
+          render(cloneVNode(vm.value, { ...props }), modalContainer!);
+        } else {
+          render(cloneVNode(vm.value, { ...vm.value?.component.props, ...props }), modalContainer!);
+        }
       });
     }
+  };
+
+  const updateConfigNoSet = (visible: boolean) => {
+    updateConfig({
+      props: { visible },
+    });
   };
 
   /**
@@ -187,7 +229,7 @@ export function useModal<Comp extends Component>(
    */
   function init() {
     vm.value = createVNode(component, {
-      visible: visible,
+      visible: visible.value,
       ...props,
     });
 
