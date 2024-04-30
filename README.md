@@ -1,4 +1,4 @@
-# k-simple-modal
+# @zwkang/vue-use-modal
 
 > description: a simple modal component for vue3 to using with function call
 
@@ -21,22 +21,18 @@ const { open } = useDialog({
   lazy: true,
 });
 
-const {} = useDialog({
+const { open, close } = useDialog({
   component: Component,
   props: {
+    onClose: () => {
+      close();
+    },
     title: 'title',
-    content: 'content',
+    content: ref('content'),
   },
   lazy: false,
 });
 ```
-
-## copy usage remove this please !!
-
-Inspired by
-
-- [vue-final/vue-final-modal](https://github.com/vue-final/vue-final-modal)
-- [ant-design-vue](https://github.com/vueComponent/ant-design-vue)
 
 ## LICENSE
 
