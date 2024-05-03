@@ -36,7 +36,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Release
-        run: pnpm relese
+        run: pnpm release
 
       - run: npx changelogithub
         env:
