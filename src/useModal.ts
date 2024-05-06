@@ -19,6 +19,14 @@ export const getOverlay = () => {
   return popper;
 };
 
+// Type for the computed component exposed
+type ComputedComponentExposed<Component> = ComputedRef<ComponentExposed<Component>>;
+type MaybeRef<T> = T | Ref<T>;
+
+type MarkMaybeRef<T extends Record<string, any>> = {
+  [key in keyof T]: MaybeRef<T[key]>;
+};
+
 function handleProps(obj: Record<string, Ref<any> | any>) {
   const keys = Object.keys(obj);
   const refKeys = keys.filter((key) => isRef(obj[key]));
@@ -51,9 +59,11 @@ type IProps<T, Lazy> = {
   component: T;
 
   getContainer?: () => HTMLElement;
-  props?: Omit<ComponentProps<T>, 'visible'>;
+  props?: MarkMaybeRef<Omit<ComponentProps<T>, 'visible'>>;
   visible?: boolean;
   __exp_autoRef?: boolean;
+
+  _keepAlive?: boolean;
 
   onConfirm?: () => void;
   onRemove?: () => void;
@@ -64,14 +74,6 @@ type IProps<T, Lazy> = {
 
   immediate?: boolean;
   autoDestroy?: boolean;
-};
-
-// Type for the computed component exposed
-type ComputedComponentExposed<Component> = ComputedRef<ComponentExposed<Component>>;
-type MaybeRef<T> = T | Ref<T>;
-
-type MarkMaybeRef<T extends Record<string, any>> = {
-  [key in keyof T]: MaybeRef<T[key]>;
 };
 
 // Return value type of the useModal function
@@ -129,6 +131,7 @@ export function useModal<Comp extends Component>(
     lazy = true,
     visible: _visible = defaultConfig.visible,
     autoDestroy = false,
+    _keepAlive = false,
     __exp_autoRef = true,
   } = config;
 
@@ -144,7 +147,14 @@ export function useModal<Comp extends Component>(
    * Opens the modal.
    */
   const open = () => {
-    if (!vm.value) init();
+    if (!vm.value) {
+      init();
+    }
+
+    if (vm.value && !_keepAlive) {
+      destroy();
+      init();
+    }
     if (vm.value?.component) {
       if (__exp_autoRef) {
         updateConfig({
@@ -180,10 +190,7 @@ export function useModal<Comp extends Component>(
     await nextTick();
     visible.value = false;
 
-    if (modalContainer) {
-      render(null, modalContainer);
-      modalContainer.parentNode?.removeChild(modalContainer);
-    }
+    destroy();
 
     modalContainer = null;
 
@@ -223,6 +230,13 @@ export function useModal<Comp extends Component>(
       props: { visible },
     });
   };
+
+  function destroy() {
+    if (modalContainer) {
+      render(null, modalContainer);
+      modalContainer.parentNode?.removeChild(modalContainer);
+    }
+  }
 
   /**
    * Initializes the modal.
