@@ -147,14 +147,14 @@ export function useModal<Comp extends Component>(
    * Opens the modal.
    */
   const open = () => {
+    if (vm.value && !_keepAlive) {
+      destroy();
+      vm.value = null;
+    }
     if (!vm.value) {
       init();
     }
 
-    if (vm.value && !_keepAlive) {
-      destroy();
-      init();
-    }
     if (vm.value?.component) {
       if (__exp_autoRef) {
         updateConfig({
