@@ -10,8 +10,9 @@ import {
   unref,
   isRef,
 } from 'vue';
-import type { AppContext, Component, ComputedRef, Ref, ShallowRef, VNode } from 'vue';
-import type { ComponentExposed, ComponentProps } from './Component';
+import type { AppContext, Component, ComputedRef, Ref, RenderFunction, ShallowRef, VNode } from 'vue';
+import type { ComponentExposed, ComponentProps, ComponentSlots } from './Component';
+import { getSlots } from './helper';
 
 // Function to get the overlay element
 export const getOverlay = () => {
@@ -53,6 +54,10 @@ const defaultConfig = {
   visible: false,
 };
 
+type ISlots<T> = {
+  [key in keyof ComponentSlots<T>]: string | Component | RenderFunction;
+};
+
 // Interface for the props of the useModal function
 type IProps<T, Lazy> = {
   lazy?: Lazy;
@@ -70,7 +75,7 @@ type IProps<T, Lazy> = {
   onClose?: () => void;
   onOpen?: () => void;
 
-  slots?: any;
+  slots?: ISlots<T>;
 
   immediate?: boolean;
   autoDestroy?: boolean;
@@ -133,6 +138,7 @@ export function useModal<Comp extends Component>(
     autoDestroy = false,
     _keepAlive = false,
     __exp_autoRef = true,
+    slots,
   } = config;
 
   let vm: any = shallowRef<any>(null);
@@ -242,10 +248,14 @@ export function useModal<Comp extends Component>(
    * Initializes the modal.
    */
   function init() {
-    vm.value = createVNode(component, {
-      visible: visible.value,
-      ...props,
-    });
+    vm.value = createVNode(
+      component,
+      {
+        visible: visible.value,
+        ...props,
+      },
+      getSlots<Comp>(slots),
+    );
 
     if (DialogContext && appContext) {
       vm.value.appContext = appContext;
